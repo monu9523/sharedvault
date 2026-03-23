@@ -1,0 +1,15 @@
+{
+  "name": "SharedVault",
+  "short_name": "Vault",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f5f2eb",
+  "theme_color": "#c17f3a",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
