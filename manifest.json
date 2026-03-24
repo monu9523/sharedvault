@@ -1,15 +1,52 @@
 {
-  "name": "SharedVault",
-  "short_name": "Vault",
-  "start_url": ".",
+  "name": "SecureVault - Personal Password Manager",
+  "short_name": "SecureVault",
+  "description": "Secure, encrypted password manager. AES-256-GCM encryption, 100% local storage, no servers.",
+  "start_url": "/index.html",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#f5f2eb",
-  "theme_color": "#c17f3a",
+  "orientation": "portrait-primary",
+  "theme_color": "#0f1419",
+  "background_color": "#0f1419",
   "icons": [
     {
-      "src": "icon.png",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%2300d4ff' width='192' height='192'/><text x='50%' y='50%' font-size='120' font-weight='bold' text-anchor='middle' dominant-baseline='middle' fill='%230f1419' font-family='Arial'>🔐</text></svg>",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%2300d4ff' width='512' height='512'/><text x='50%' y='50%' font-size='300' font-weight='bold' text-anchor='middle' dominant-baseline='middle' fill='%230f1419' font-family='Arial'>🔐</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
-  ]
+  ],
+  "categories": ["productivity", "utilities"],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%231a1f2e' width='540' height='720'/><text x='270' y='360' font-size='100' text-anchor='middle' fill='%2300d4ff' font-family='Arial'>SecureVault</text></svg>",
+      "sizes": "540x720",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add Password",
+      "short_name": "Add",
+      "description": "Quickly add a new password",
+      "url": "/?action=add",
+      "icons": [{ "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><text font-size='60' text-anchor='middle' x='48' y='60' fill='%2300d4ff'>➕</text></svg>", "sizes": "96x96" }]
+    },
+    {
+      "name": "View Vault",
+      "short_name": "Vault",
+      "description": "Open your password vault",
+      "url": "/?action=vault",
+      "icons": [{ "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><text font-size='60' text-anchor='middle' x='48' y='60' fill='%2300d4ff'>🔑</text></svg>", "sizes": "96x96" }]
+    }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": []
 }
