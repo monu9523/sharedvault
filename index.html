@@ -831,7 +831,7 @@ input:focus {
         <label>Master Password</label>
         <div class="pw-input-wrapper">
           <input type="password" id="login-password" placeholder="••••••••••" autocomplete="current-password">
-          <button type="button" class="pw-toggle" onclick="togglePassword('login-password')">👁️</button>
+          <button type="button" class="pw-toggle" onclick="toggleInputPassword('login-password')">👁️</button>
         </div>
       </div>
 
@@ -861,7 +861,7 @@ input:focus {
         <label>Master Password</label>
         <div class="pw-input-wrapper">
           <input type="password" id="register-password" placeholder="••••••••••" autocomplete="new-password" oninput="updateStrength()">
-          <button type="button" class="pw-toggle" onclick="togglePassword('register-password')">👁️</button>
+          <button type="button" class="pw-toggle" onclick="toggleInputPassword('register-password')">👁️</button>
         </div>
         <div class="strength-meter">
           <div class="strength-fill" id="strength-fill"></div>
@@ -873,7 +873,7 @@ input:focus {
         <label>Confirm Master Password</label>
         <div class="pw-input-wrapper">
           <input type="password" id="register-confirm" placeholder="••••••••••" autocomplete="new-password">
-          <button type="button" class="pw-toggle" onclick="togglePassword('register-confirm')">👁️</button>
+          <button type="button" class="pw-toggle" onclick="toggleInputPassword('register-confirm')">👁️</button>
         </div>
       </div>
 
@@ -941,7 +941,7 @@ input:focus {
           <div class="user-avatar" id="user-avatar">J</div>
           <div class="user-info">
             <div class="user-name" id="user-name">John Doe</div>
-            <div class="user-email" id="user-email">john@example.com</div>
+            <div class="user-email" id="user-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f3999c9b9db3968b929e839f96dd909c9e">[email&#160;protected]</a></div>
           </div>
           <button class="btn-logout" onclick="lockVault()" title="Logout">🚪</button>
         </div>
@@ -995,7 +995,7 @@ input:focus {
       <div class="pw-input-wrapper">
         <input type="password" id="entry-password" placeholder="••••••••••" autocomplete="off">
         <div style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: flex; gap: 4px;">
-          <button type="button" class="pw-toggle" onclick="togglePassword('entry-password')" title="Show">👁️</button>
+          <button type="button" class="pw-toggle" onclick="toggleInputPassword('entry-password')" title="Show">👁️</button>
           <button type="button" class="pw-toggle" onclick="generatePassword()" title="Generate">⚡</button>
         </div>
       </div>
@@ -1028,7 +1028,7 @@ input:focus {
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ═══════════════════════════════════════════════════════════════
 //  CONFIGURATION & CONSTANTS
 // ═══════════════════════════════════════════════════════════════
@@ -1168,7 +1168,14 @@ async function handleLogin() {
     STATE.masterKey = masterKey;
     STATE.passwords = vault.passwords || [];
 
-    Storage.saveSession(STATE);
+    // Seed session with exportable raw key
+    const rawKey = await crypto.subtle.exportKey('raw', masterKey);
+    Storage.saveSession({
+      user: STATE.user,
+      passwords: STATE.passwords,
+      currentCategory: STATE.currentCategory,
+      rawKey: CryptoUtil.b64Encode(rawKey),
+    });
     unlockApp();
   } catch (error) {
     showLoginError('Incorrect email or password.');
@@ -1224,7 +1231,13 @@ async function handleRegister() {
     STATE.masterKey = masterKey;
     STATE.passwords = [];
 
-    Storage.saveSession(STATE);
+    const rawKey2 = await crypto.subtle.exportKey('raw', masterKey);
+    Storage.saveSession({
+      user: STATE.user,
+      passwords: STATE.passwords,
+      currentCategory: STATE.currentCategory,
+      rawKey: CryptoUtil.b64Encode(rawKey2),
+    });
     switchToLogin();
     showToast(`✅ Account created! Logging you in...`);
     setTimeout(unlockApp, 1000);
@@ -1251,12 +1264,6 @@ function switchToLogin() {
 async function unlockApp() {
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('app').classList.add('visible');
-
-  // Restore session if available
-  const session = Storage.loadSession();
-  if (session) {
-    STATE = session;
-  }
 
   updateUserProfile();
   renderPasswords();
@@ -1356,7 +1363,14 @@ async function persistPasswords() {
     Storage.save(db);
   }
 
-  Storage.saveSession(STATE);
+  // Export raw key bytes so sessionStorage can survive a soft reload
+  const rawKey = await crypto.subtle.exportKey('raw', STATE.masterKey);
+  Storage.saveSession({
+    user: STATE.user,
+    passwords: STATE.passwords,
+    currentCategory: STATE.currentCategory,
+    rawKey: CryptoUtil.b64Encode(rawKey),
+  });
 }
 
 function renderPasswords() {
@@ -1375,7 +1389,7 @@ function renderPasswords() {
   }
 
   grid.innerHTML = filtered
-    .map((entry, idx) => `
+    .map((entry) => `
       <div class="password-card">
         <div class="card-header">
           <div class="card-logo">${entry.site.charAt(0).toUpperCase()}</div>
@@ -1394,7 +1408,7 @@ function renderPasswords() {
         </div>
         <div class="card-actions">
           <button class="action-btn" id="copy-${entry.id}" onclick="copyPassword('${entry.id}', this)">📋 Copy</button>
-          <button class="action-btn" onclick="togglePassword('pw-${entry.id}', '${entry.id}')">👁️ Show</button>
+          <button class="action-btn" id="show-btn-${entry.id}" onclick="toggleCardPassword('${entry.id}')">👁️ Show</button>
           <button class="action-btn" onclick="openEditModal('${entry.id}')">✏️ Edit</button>
           <button class="action-btn delete" onclick="deleteEntry('${entry.id}')">🗑️</button>
         </div>
@@ -1417,7 +1431,7 @@ function getFilteredPasswords() {
   if (STATE.searchQuery) {
     const q = STATE.searchQuery.toLowerCase();
     filtered = filtered.filter(
-      p => p.site.toLowerCase().includes(q) || p.username.toLowerCase().includes(q) || p.url.toLowerCase().includes(q)
+      p => p.site.toLowerCase().includes(q) || p.username.toLowerCase().includes(q) || (p.url || '').toLowerCase().includes(q)
     );
   }
 
@@ -1442,23 +1456,29 @@ async function copyPassword(id, btn) {
   }, 30000);
 }
 
-function togglePassword(fieldId, entryId) {
-  const field = document.getElementById(fieldId);
+// ── toggleCardPassword: reveals/hides password text in a card row ──
+function toggleCardPassword(entryId) {
+  const entry = STATE.passwords.find(p => p.id === entryId);
+  if (!entry) return;
+
+  const field = document.getElementById('pw-' + entryId);
+  const btn   = document.getElementById('show-btn-' + entryId);
   if (!field) return;
 
-  if (entryId) {
-    const entry = STATE.passwords.find(p => p.id === entryId);
-    if (!entry) return;
-
-    if (field.textContent === '••••••••••') {
-      field.textContent = entry.password;
-    } else {
-      field.textContent = '••••••••••';
-    }
+  if (field.textContent === '••••••••••') {
+    field.textContent = entry.password;
+    if (btn) btn.textContent = '🙈 Hide';
   } else {
-    const input = document.getElementById(fieldId);
-    input.type = input.type === 'password' ? 'text' : 'password';
+    field.textContent = '••••••••••';
+    if (btn) btn.textContent = '👁️ Show';
   }
+}
+
+// ── toggleInputPassword: shows/hides text in <input type="password"> fields ──
+function toggleInputPassword(inputId) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  input.type = input.type === 'password' ? 'text' : 'password';
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1531,8 +1551,6 @@ function generatePassword() {
 function updateStrength() {
   const pw = document.getElementById('register-password').value;
   let strength = 0;
-  let text = 'Weak';
-  let color = '#ef4444';
 
   if (pw.length >= 8) strength++;
   if (pw.length >= 12) strength++;
@@ -1543,15 +1561,10 @@ function updateStrength() {
   const colors = ['#ef4444', '#f59e0b', '#eab308', '#84cc16', '#10b981'];
   const texts = ['Weak', 'Fair', 'Good', 'Strong', 'Very Strong'];
 
-  if (strength > 0) {
-    text = texts[strength - 1] || 'Very Strong';
-    color = colors[strength - 1] || '#10b981';
-  }
-
   const fill = document.getElementById('strength-fill');
   fill.style.width = (strength * 20) + '%';
-  fill.style.backgroundColor = color;
-  document.getElementById('strength-text').textContent = text;
+  fill.style.backgroundColor = colors[strength - 1] || '#10b981';
+  document.getElementById('strength-text').textContent = strength > 0 ? texts[strength - 1] : '';
 }
 
 function openSettings() {
@@ -1565,13 +1578,6 @@ function openAbout() {
 // ═══════════════════════════════════════════════════════════════
 //  UTILITIES
 // ═══════════════════════════════════════════════════════════════
-function togglePassword(id) {
-  const el = document.getElementById(id);
-  if (el && el.type !== undefined) {
-    el.type = el.type === 'password' ? 'text' : 'password';
-  }
-}
-
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
 }
@@ -1621,15 +1627,29 @@ document.getElementById('entry-modal').addEventListener('click', (e) => {
 // ═══════════════════════════════════════════════════════════════
 //  INITIALIZATION
 // ═══════════════════════════════════════════════════════════════
-window.addEventListener('load', () => {
-  // Restore session if available
+window.addEventListener('load', async () => {
+  // Restore session: re-import AES-GCM key from stored raw bytes
   const session = Storage.loadSession();
-  if (session && session.user) {
-    STATE = session;
-    unlockApp();
+  if (session && session.user && session.rawKey) {
+    try {
+      const rawKeyBytes = CryptoUtil.b64Decode(session.rawKey);
+      const masterKey = await crypto.subtle.importKey(
+        'raw',
+        rawKeyBytes,
+        { name: 'AES-GCM', length: 256 },
+        true,
+        ['encrypt', 'decrypt']
+      );
+      STATE.user = session.user;
+      STATE.masterKey = masterKey;
+      STATE.passwords = session.passwords || [];
+      STATE.currentCategory = session.currentCategory || 'all';
+      unlockApp();
+    } catch (e) {
+      Storage.clearSession();
+    }
   }
 
-  // Register service worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
