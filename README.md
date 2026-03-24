@@ -37,10 +37,4 @@ sharedvault/
 
 ---
 
-## ⚙️ Installation & Setup
 
-### 1️⃣ Clone the Repository
-
-```bash
-git clone https://github.com/monu9523/sharedvault.git
-cd sharedvault
